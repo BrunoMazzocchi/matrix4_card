@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:palette_generator/palette_generator.dart';
 
 void main() {
   runApp(const MyApp());
@@ -55,72 +56,112 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage>  with SingleTickerProviderStateMixin{
+class _MyHomePageState extends State<MyHomePage>
+    with SingleTickerProviderStateMixin {
 
+  String image = "https://i0.wp.com/codigoespagueti.com/wp-content/uploads/2023/05/One-Piece-Live-action-Netflix.jpg?resize=1280%2C1903&quality=80&ssl=1";     
   double x = 0;
   double y = 0;
   double z = 0;
 
+  /// Generate a [PaletteGenerator] from an [ImageProvider].
+  Future<PaletteGenerator> generatePalette(ImageProvider imageProvider) async {
+    final PaletteGenerator paletteGenerator =
+        await PaletteGenerator.fromImageProvider(imageProvider);
+    return paletteGenerator;
+  }
+
+  late Future<PaletteGenerator> palete;
+  @override
+  void initState() {
+    palete = generatePalette( NetworkImage(
+        image));
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        systemOverlayStyle: const SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.dark,
-        )
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Center(
-              child: Transform(
-                transform: Matrix4(
-                    1,0,0,0,
-                    0,1,0,0,
-                    0,0,1,0.002,
-                    0,0,0,1,
-                )..rotateX(x)..rotateY(y)..rotateZ(z),
-                alignment: FractionalOffset.center,
-                child: GestureDetector(
-                  onPanUpdate: (details) {
-                    setState(() {
-                      x += details.delta.dy / 100;
-                      y += details.delta.dx / 100;
-                    });
-                  },
-                  onPanEnd: (details) {
-                    setState(() {
-                      x = 0;
-                      y = 0;
-                    });
-                  },
-                  child: Container(
-                    height: 450.0,
-                    width: MediaQuery.of(context).size.width * 0.8,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10.0),
-                      image: const DecorationImage(
-                        image: NetworkImage('https://media.vandalsports.com/i/620x775/8-2023/2023829200_1.jpg'),
-                        fit: BoxFit.cover,
-                      ),
-                      boxShadow:  const [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 10.0,
-                          offset: Offset(0, 10),
+      body: FutureBuilder(
+        future: palete,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return Container(
+              color: snapshot.data!.dominantColor!.color,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Center(
+                    child: Transform(
+                      transform: Matrix4(
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0.002,
+                        0,
+                        0,
+                        0,
+                        1,
+                      )
+                        ..rotateX(x)
+                        ..rotateY(y)
+                        ..rotateZ(z),
+                      alignment: FractionalOffset.center,
+                      child: GestureDetector(
+                        onPanUpdate: (details) {
+                          setState(() {
+                            x += details.delta.dy / 100;
+                            y += details.delta.dx / 100;
+                          });
+                        },
+                        onPanEnd: (details) {
+                          setState(() {
+                            x = 0;
+                            y = 0;
+                          });
+                        },
+                        child: Container(
+                          height: 450.0,
+                          width: MediaQuery.of(context).size.width * 0.8,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10.0),
+                            image: DecorationImage(
+                              image: NetworkImage(
+                                  image),
+                              fit: BoxFit.cover,
+                            ),
+                             // Box shadow based on the dominant color
+                            boxShadow: [
+                              BoxShadow(
+                                color: snapshot.data!.colors.elementAt(1),
+                                blurRadius: 20.0,
+                                spreadRadius: 5.0,
+                                offset: const Offset(0.0, 5.0),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ),
-          ],
-        ),
+            );
+          } else {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+        },
       ),
     );
   }
